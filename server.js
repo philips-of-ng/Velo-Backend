@@ -19,8 +19,6 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(cors());
 
-
-
 // --- Database Connection ---
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
