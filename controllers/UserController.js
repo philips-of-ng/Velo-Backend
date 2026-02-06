@@ -65,3 +65,15 @@ exports.searchUsers = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.user.id,
+      { nickname: req.body.nickname },
+      { new: true }
+    )
+    res.status(200).json({ success: true, user })
+  } catch (error) {
+    res.status(200).json({ message: "Server Error" })
+  }
+}
