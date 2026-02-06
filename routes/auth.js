@@ -10,6 +10,6 @@ router.post("/login", login);
 // Protected routes (Velo needs these for the frontend)
 router.get("/me", protect, getMe);
 router.get("/search", protect, searchUsers);
-router.put("/profile", updateProfile)
+router.put("/profile", protect, updateProfile)
 
 module.exports = router;
