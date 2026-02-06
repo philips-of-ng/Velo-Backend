@@ -66,7 +66,7 @@ exports.searchUsers = async (req, res) => {
   }
 };
 
-const updateProfile = async (req, res) => {
+exports.updateProfile = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.user.id,
       { nickname: req.body.nickname },
