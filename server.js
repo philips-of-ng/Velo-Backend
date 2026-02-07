@@ -29,7 +29,7 @@ mongoose
 // --- Routes ---
 // Use plural consistently to match your frontend Api.get('/chats')
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/chats", require("./routes/chatRoutes")); // Ensure lowercase matches filename
+app.use("/api/chats", require("./routes/ChatRoutes")); // Ensure lowercase matches filename
 app.use("/api/messages", require("./routes/messageRoutes"));
 
 // --- Socket.io Logic ---
