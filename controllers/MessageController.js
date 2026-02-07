@@ -1,38 +1,36 @@
-const Message = require("../models/Message");
+const Message = require('../models/Message');
 
-// Save a new message to the database
+// @desc    Send a message
+// @route   POST /api/messages/send
 exports.sendMessage = async (req, res) => {
   try {
-    const { roomId, text, recipientId } = req.body;
-    const senderId = req.user.id; // From our authMiddleware
-
-    const newMessage = new Message({
-      roomId,
-      sender: senderId,
-      text,
+    const { recipientId, content } = req.body;
+    
+    const message = await Message.create({
+      sender: req.user.id, // From your protect middleware
+      recipient: recipientId,
+      content
     });
 
-    await newMessage.save();
-
-    // We populate the sender's name and avatar to show in the UI immediately
-    const fullMessage = await newMessage.populate("sender", "username avatar");
-
-    res.status(201).json(fullMessage);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(201).json(message);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// Get all messages for a specific room
+// @desc    Get messages for a conversation
+// @route   GET /api/messages/:userId
 exports.getMessages = async (req, res) => {
   try {
-    const { roomId } = req.params;
-    const messages = await Message.find({ roomId })
-      .populate("sender", "username avatar")
-      .sort({ createdAt: 1 }); // Sort by time (oldest to newest)
+    const messages = await Message.find({
+      $or: [
+        { sender: req.user.id, recipient: req.params.userId },
+        { sender: req.params.userId, recipient: req.user.id }
+      ]
+    }).sort({ createdAt: -1 }); // Sort newest first for the FlatList 'inverted' prop
 
-    res.json(messages);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
   }
 };

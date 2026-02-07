@@ -15,7 +15,9 @@ exports.register = async (req, res) => {
     user = new User({ username, email, password: hashedPassword });
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
     res.status(201).json({ token, user: { id: user._id, username, email } });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -30,10 +32,16 @@ exports.login = async (req, res) => {
     if (!user) return res.status(400).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.json({
+      token,
+      user: { id: user._id, username: user.username, email: user.email },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -52,28 +60,53 @@ exports.getMe = async (req, res) => {
 // SEARCH USERS
 exports.searchUsers = async (req, res) => {
   try {
-    const keyword = req.query.search ? {
-      $or: [
-        { username: { $regex: req.query.search, $options: "i" } },
-        { email: { $regex: req.query.search, $options: "i" } },
-      ],
-    } : {};
+    const { nickname } = req.query;
+    if (!nickname)
+      return res.status(400).json({ msg: "Please enter a nickname" });
 
-    const users = await User.find(keyword).find({ _id: { $ne: req.user.id } }).select("-password");
-    res.send(users);
+    const users = await User.find({
+      $or: [
+        { nickname: { $regex: nickname, $options: "i" } },
+        { username: { $regex: nickname, $options: "i" } },
+      ],
+      _id: { $ne: req.user.id }, // Don't find yourself
+    }).select("nickname username avatar department");
+
+    res.json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).send("Server Error");
   }
 };
 
 exports.updateProfile = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.user.id,
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
       { nickname: req.body.nickname },
-      { new: true }
-    )
-    res.status(200).json({ success: true, user })
+      { new: true },
+    );
+    res.status(200).json({ success: true, user });
   } catch (error) {
-    res.status(200).json({ message: "Server Error" })
+    res.status(200).json({ message: "Server Error" });
   }
-}
+};
+
+// @desc    Get suggested users in the same department
+// @route   GET /api/auth/users/suggestions
+exports.getSuggestions = async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.id);
+
+    // Find users in the same department, excluding the current user
+    const suggestions = await User.find({
+      department: currentUser.department,
+      _id: { $ne: req.user.id },
+    })
+      .limit(10)
+      .select("nickname username avatar department");
+
+    res.json(suggestions);
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+};
