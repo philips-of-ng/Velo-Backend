@@ -110,3 +110,66 @@ exports.getSuggestions = async (req, res) => {
     res.status(500).send("Server Error");
   }
 };
+
+
+// @desc    Get locations of department mates who have sharing enabled
+// @route   GET /api/auth/users/locations
+exports.getStudentLocations = async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.id);
+
+    const mates = await User.find({
+      department: currentUser.department, // Only show same department
+      locationSharing: true,             // Respect privacy settings
+      _id: { $ne: req.user.id },         // Don't include self
+      lastSeenLocation: { $exists: true } // Only those with coords
+    }).select('nickname avatar lastSeenLocation department');
+
+    // Map to the format the frontend MapView expects
+    const formattedMates = mates.map(mate => ({
+      _id: mate._id,
+      nickname: mate.nickname,
+      department: mate.department,
+      avatar: mate.avatar,
+      location: {
+        latitude: mate.lastSeenLocation.coordinates[1],
+        longitude: mate.lastSeenLocation.coordinates[0]
+      }
+    }));
+
+    res.json(formattedMates);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching locations" });
+  }
+};
+
+// @desc    Update user's current coordinates
+// @route   POST /api/auth/users/update-location
+exports.updateLocation = async (req, res) => {
+  const { latitude, longitude } = req.body;
+  try {
+    await User.findByIdAndUpdate(req.user.id, {
+      lastSeenLocation: {
+        type: 'Point',
+        coordinates: [longitude, latitude] // GeoJSON: [long, lat]
+      }
+    });
+    res.status(200).json({ message: "Location updated" });
+  } catch (err) {
+    res.status(500).json({ message: "Update failed" });
+  }
+};
+
+
+// @desc    Toggle location sharing
+exports.toggleSharing = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    user.locationSharing = !user.locationSharing;
+    await user.save();
+    res.json({ locationSharing: user.locationSharing });
+  } catch (err) {
+    res.status(500).json({ message: "Toggle failed" });
+  }
+};
+
