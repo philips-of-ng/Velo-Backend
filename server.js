@@ -30,7 +30,7 @@ mongoose
 // Use plural consistently to match your frontend Api.get('/chats')
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/chats", require("./routes/chatRoutes")); 
-app.use("/api/messages", require("./routes/messageRoutes"));
+app.use("/api/messages", require("./routes/MessageRoutesTEMP"));
 
 // --- Socket.io Logic ---
 io.on("connection", (socket) => {
